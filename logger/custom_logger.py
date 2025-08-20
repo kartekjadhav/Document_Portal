@@ -1,6 +1,9 @@
 import logging
 import os
+import structlog
 from datetime import datetime
+
+
 
 class CustomLogger:
     def __init__(self, logs_dir="logs"):
@@ -12,18 +15,40 @@ class CustomLogger:
         self.log_file_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
         self.log_file_path = os.path.join(self.logs_dir, self.log_file_name)
 
-        # Configure logging
-        logging.basicConfig(
-            filename=self.log_file_path,
-            level=logging.INFO,
-            format="[ %(asctime)s ] %(levelname)s %(name)s (line:%(lineno)d) - %(message)s"
-        )
 
     def get_logger(self, name=__file__):
-        return logging.getLogger(os.path.basename(name))
+        
+        #File handler and console handler
+        file_handler = logging.FileHandler(self.log_file_path)
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter("%(message)s"))
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter("%(message)s"))
+        
+        # Configure logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(message)s',
+            handlers=[file_handler, console_handler]
+        )
+
+        structlog.configure(
+            processors=[
+                structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+                structlog.processors.add_log_level,
+                structlog.processors.EventRenamer(to="event"),
+                structlog.processors.JSONRenderer()
+            ],
+            logger_factory=structlog.stdlib.LoggerFactory(),
+            cache_logger_on_first_use=False
+        )
+
+        return structlog.get_logger(name=name)
 
 
 if __name__ == "__main__":
-    custom_logger = CustomLogger()
-    logger = custom_logger.get_logger(__file__)
-    logger.info("Custom logger initialized successfully.")
+    custom_logger = CustomLogger().get_logger(__file__)
+    custom_logger.info("User uploaded a file", user_id=123, file_name="python12.pdf")
+    custom_logger.error("An error occurred while processing the file", user_id=123, file_name="python12.pdf")

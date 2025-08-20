@@ -1,0 +1,28 @@
+{
+    "embedding_model": {
+        "provider": "google",
+        "model": "models/text-embedding-004"
+    },
+
+    "retriever": {
+        "top_k": 10
+    },
+
+    "faiss_db": {
+        "collection_name": "document_collection"
+    },
+
+    "llm": {
+        "google": {
+            "model": "gemini-2.0-flash",
+            "temperature": 0.1,
+            "max_output_tokens": 2048
+        },
+
+        "groq": {
+            "model": "deepseek-r1-distill-llama-70b",
+            "temperature": 0.1,
+            "max_output_tokens": 2048
+        }
+    }
+}

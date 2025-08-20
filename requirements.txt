@@ -9,5 +9,6 @@ faiss-cpu
 langchain_core
 structlog
 PyMuPDF
+langchain_openai
 
 -e .
