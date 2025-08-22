@@ -35,3 +35,8 @@ https://console.groq.com/keys
 ```
 https://aistudio.google.com/apikey
 ```
+
+## SET GOOGLE AS LLM_PROVIDER ENV VARIABLE
+```
+export LLM_PROVIDER=google
+```
