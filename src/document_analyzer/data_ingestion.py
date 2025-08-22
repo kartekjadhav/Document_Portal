@@ -91,7 +91,7 @@ if __name__ == "__main__":
     
     dummy_file = DummyFile(pdf_path)
 
-    handler = DocumentHandler(session_id="test_session")
+    handler = DocumentHandler()
 
     try:
         saved_path = handler.save_pdf(dummy_file)
