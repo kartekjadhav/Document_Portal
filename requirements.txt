@@ -10,5 +10,6 @@ langchain_core
 structlog
 PyMuPDF
 langchain_openai
+pydantic
 
 -e .
