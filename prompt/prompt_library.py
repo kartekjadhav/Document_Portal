@@ -29,8 +29,8 @@ document_comparison_prompt = ChatPromptTemplate.from_template(
 
     {format_instructions}
 
-    Analyze this document:
-    {document_text}
+    Analyze these document:
+    {document_text_combined}
 
     """
 )
