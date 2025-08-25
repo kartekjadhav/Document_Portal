@@ -11,5 +11,6 @@ structlog
 PyMuPDF
 langchain_openai
 pydantic
+pandas
 
 -e .

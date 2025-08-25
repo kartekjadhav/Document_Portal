@@ -6,7 +6,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain.output_parsers import OutputFixingParser
 from utils.model_loader import ModelLoader
 from models.models import *
-from prompt.prompt_library import prompt
+from prompt.prompt_library import PROMPT_REGISTRY
 
 class DocumentAnalyzer:
     
@@ -25,7 +25,7 @@ class DocumentAnalyzer:
             self.parser = JsonOutputParser(pydantic_object=MetaData)
             self.fixing_parser = OutputFixingParser.from_llm(llm=self.llm, parser=self.parser)
 
-            self.prompt = prompt
+            self.prompt = PROMPT_REGISTRY["document_analysis"]
 
             self.log.info("DocumentAnalyzer initialized successfully.") 
 
@@ -41,7 +41,7 @@ class DocumentAnalyzer:
             self.log.info("Metadata analysis chain initialized successfully.")
             
             response = chain.invoke({
-                "format_instructions": self.parser.get_format_instructions(),
+                "format_instructions": self.fixing_parser.get_format_instructions(),
                 "document_text": document_text
                 }
             )
