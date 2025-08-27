@@ -6,7 +6,7 @@ from exception.custom_exception import DocumentPortalException
 
 
 class DocumentComparator:
-    def __init__(self, base_dir="docs"):
+    def __init__(self, base_dir:str="data/document_compare"):
         self.log = CustomLogger().get_logger(__name__)
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
@@ -18,13 +18,13 @@ class DocumentComparator:
         Save the uploaded file to a specific directory.
         """
         try:
-            self.log("Starting uploading of provided files.")
+            self.log.info("Starting uploading of provided files.")
             self.delete_existing_files()
 
-            reference_file_path = self.base_dir / reference_file
-            actual_file_path = self.base_dir / actual_file
+            reference_file_path = self.base_dir / reference_file.name
+            actual_file_path = self.base_dir / actual_file.name
 
-            if not reference_file_path.endswith(".pdf") or actual_file_path.endswith(".pdf"):
+            if reference_file_path.suffix != ".pdf" or actual_file_path.suffix != ".pdf":
                 raise ValueError("Only PDF files are allowed.")
             
             with open(reference_file_path, "wb") as f:
