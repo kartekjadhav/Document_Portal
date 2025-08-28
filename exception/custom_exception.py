@@ -1,7 +1,5 @@
 import sys
 import traceback
-from logger.custom_logger import CustomLogger
-logger = CustomLogger().get_logger(__file__)
 
 
 class DocumentPortalException(Exception):
@@ -21,6 +19,8 @@ class DocumentPortalException(Exception):
         """
 
 if __name__ == "__main__":
+    from logger.custom_logger import CustomLogger
+    logger = CustomLogger().get_logger(__file__)
     try:
         a = 1 / 0  # Intentional error for testing
     except Exception as e:
