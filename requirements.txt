@@ -12,5 +12,8 @@ PyMuPDF
 langchain_openai
 pydantic
 pandas
+pytest
+streamlit
+langchain-core[tracing]
 
 -e .
