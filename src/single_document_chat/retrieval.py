@@ -75,7 +75,7 @@ class ConversationalRAG:
     def load_retriver_from_fiass(self, faiss_dir:str):
         try:
             if not os.path.isdir(faiss_dir):
-                raise FileNotFoundError(f"FAISS directory does not exist." dir={faiss_dir})
+                raise FileNotFoundError(f"FAISS directory not found: {faiss_dir}")
 
             embedding = ModelLoader().load_embbeddings()
             vectorestore = FAISS.load_local(faiss_dir, embedding)    
@@ -90,7 +90,7 @@ class ConversationalRAG:
     def invoke(self, user_question:str):
         try:
             response = self.chain.invoke(
-                "input": user_question,
+                {"input": user_question},
                 config={"configurable": {"session_id": self.session_id}},
             )
             answer = response.get("answer", "No answer")
