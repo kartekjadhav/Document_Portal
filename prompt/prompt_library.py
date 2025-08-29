@@ -47,9 +47,20 @@ contextualize_prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}")
 ]) 
 
+# Prompt for answering based on context
+context_qa_prompt = ChatPromptTemplate.from_messages([
+    ("system", (
+        "You are an assistant designed to answer questions using the provided context. Rely only on the retrieved "
+        "information to form your response. If the answer is not found in the context, respond with 'I don't know.' "
+        "Keep your answer concise and no longer than three sentences.\n\n{context}"
+    )),
+    MessagesPlaceholder("chat_history"),
+    ("human", "{input}"),
+])
 
 PROMPT_REGISTRY = {
     "document_analysis": document_analysis_prompt,
     "document_comparison": document_comparison_prompt,
-    "contextualize_prompt": contextualize_prompt
+    "contextualize_prompt": contextualize_prompt,
+    "context_qa": context_qa_prompt,
 }

@@ -24,7 +24,7 @@ class ConversationalRAG:
         try:
             self.llm = self._load_llm()
             self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION.value]
-            self.qa_prompt = PROMPT_REGISTRY[PromptType.CONNTEXT_QA.value]
+            self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA.value]
 
             self.history_aware_retriever_chain = history_aware_retriever(
                 self.llm,
