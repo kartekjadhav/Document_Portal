@@ -1,0 +1,13 @@
+langchain
+langchain_community
+python-dotenv
+langchain_openai
+pypdf
+structlog
+pymupdf
+langchain-groq
+langchain-google-genai
+faiss-cpu
+streamlit
+langchain_core[tracing]
+pytest
