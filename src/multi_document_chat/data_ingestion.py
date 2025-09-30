@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 from langchain_community.vectorstores import FAISS
 
 from logger.custom_logger import CustomLogger
@@ -13,21 +13,21 @@ from utils.model_loader import ModelLoader
 
 class DocumentIngestor:
     SUPPORTED_FILE_EXTENSIONS = [".pdf", ".docx", ".txt", ".md"]
-    def __init__(self, data_dir:str="data/single_document_chat", faiss_dir:str="faiss_index", session_id:str | None =None):
+    def __init__(self, data_dir:str="data/multi_document_chat", faiss_dir:str="faiss_index", session_id:str | None =None):
         self.logger = CustomLogger().get_logger(__name__)
         try:
             self.logger.info("Starting to initialise DocumentIngestor.")
 
             # Base dirs
             self.data_dir_path = Path(data_dir)
-            self.faiss_dir_apth = Path(faiss_dir)
+            self.faiss_dir_path = Path(faiss_dir)
             self.data_dir_path.mkdir(parents=True, exist_ok=True)
-            self.faiss_dir_apth.mkdir(parents=True, exist_ok=True)
+            self.faiss_dir_path.mkdir(parents=True, exist_ok=True)
 
             # session paths
             session_id = session_id or f"session_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{uuid4().hex[:8]}"
             self.session_data_path = self.data_dir_path / session_id
-            self.session_faiss_path = self.faiss_dir_apth / session_id
+            self.session_faiss_path = self.faiss_dir_path / session_id
             self.session_data_path.mkdir(parents=True, exist_ok=True)
             self.faiss_dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -45,7 +45,7 @@ class DocumentIngestor:
             documents = []
 
             for file in uploaded_files:
-                ext = file.name.suffix
+                ext = file.path.suffix
 
                 if ext not in self.SUPPORTED_FILE_EXTENSIONS:
                     self.logger.warning(f"Unsupported file extension: {ext}", file=file.name)
@@ -55,12 +55,12 @@ class DocumentIngestor:
                 temp_path = self.session_data_path / unique_name
 
                 with open(temp_path, "wb") as f:
-                    f.wite(file.read())
+                    f.write(file.read())
 
                 if ext == ".pdf":
                     loader = PyPDFLoader(str(temp_path))
                 elif ext == ".txt":
-                    loader = TextLoader(str(temp_path))
+                    loader = TextLoader(file_path=str(temp_path), encoding="utf-8")
                 elif ext == ".docx":
                     loader = Docx2txtLoader(str(temp_path))
                 else:
@@ -69,6 +69,7 @@ class DocumentIngestor:
 
                 docs = loader.load()
                 documents.extend(docs)
+                self.logger.info(f"File {file.name} has been ingested successfully.", path=temp_path)
 
             if not documents:
                 raise DocumentPortalException(f"No valid documents found in the uploaded files.", sys)
@@ -92,7 +93,7 @@ class DocumentIngestor:
             # Creating FAISS vectore store
             vector_store = FAISS.from_documents(documents=chunks, embedding=embedding)
             vector_store.save_local(str(self.session_faiss_path))
-            retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+            retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
 
             self.logger.info("Retriever has been created successfully.")
             return retriever
@@ -100,14 +101,4 @@ class DocumentIngestor:
         except Exception as e:
             self.logger.error("An error has occured while creating retriever.")
             raise DocumentPortalException(e, sys)
-        
-
-
-
-
-
-
-
-
-
         

@@ -70,7 +70,7 @@ class ConversationalRAG:
             if not input:
                 raise ValueError("Input cannot be null.")
 
-            chat_history = chat_history | []
+            chat_history = chat_history or []
             payload = {"input": user_input, "chat_history":chat_history }
             answer = self.chain.invoke(payload)
             
@@ -133,3 +133,11 @@ class ConversationalRAG:
         except Exception as e:
             self.logger.info("An error has occured while building lcel chain.", error_message=e)
             raise DocumentPortalException(e, sys)
+        
+# Now self.chain is run.
+
+# To produce "context", it runs retrieved_docs.
+
+# To run retrieved_docs, it first runs question_rewriter.
+
+# To run question_rewriter, it uses itemgetter("input") and itemgetter("chat_history") on the payload.
