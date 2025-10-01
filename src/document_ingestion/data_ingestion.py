@@ -51,7 +51,7 @@ class DocHandler:
     
 
 
-class DocumentComparer:
+class DocumentComparator:
     def __init__(self):
         pass
 
