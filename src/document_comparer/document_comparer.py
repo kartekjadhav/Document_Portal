@@ -2,7 +2,7 @@ import os
 import sys
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.output_parsers import OutputFixingParser
-from exception.custom_exception import DocumentPortalException
+from exception.custom_exception_archive import DocumentPortalException
 from logger.custom_logger import CustomLogger
 from prompts.prompt_library import PROMPT_REGISTRY
 from models.models import Summary, PromptType
