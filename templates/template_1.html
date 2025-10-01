@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Document Portal — Single Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f8fa; --card:#ffffff; --muted:#6b7280; --accent:#1f2937; --primary:#0b5cff; --success:#10b981; --danger:#ef4444;
+      --radius:12px; --max-width:1100px; --glass: rgba(11,17,26,0.04);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:var(--accent);background:linear-gradient(180deg,#f8fafc 0%, #eef2f6 100%);margin:0}
+    .container{max-width:var(--max-width);margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    h1{margin:0;font-size:18px}
+    .subtitle{color:var(--muted);font-size:13px}
+
+    /* Card */
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 6px 18px rgba(15,23,42,0.06);padding:16px}
+
+    /* Tabs */
+    .tabs{display:flex;gap:8px;background:transparent;margin-bottom:14px}
+    .tab{padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;background:transparent;color:var(--muted)}
+    .tab.active{background:var(--glass);color:var(--accent)}
+
+    /* Layout */
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:18px}
+    .left{min-width:0}
+    .section-title{font-size:14px;margin:0 0 8px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=file]{display:block}
+    .row{display:flex;gap:10px;align-items:center}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* controls */
+    .control{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    .input,select,textarea{padding:10px;border:1px solid #e6e9ee;border-radius:8px;font-size:14px}
+    button{padding:10px 12px;border-radius:8px;border:0;cursor:pointer;background:var(--primary);color:white;font-weight:600}
+    button.ghost{background:transparent;color:var(--primary);border:1px solid rgba(11,92,255,0.12)}
+    .small{padding:6px 8px;font-size:13px}
+
+    /* outputs */
+    pre{background:#0b1220;color:#e6eef8;padding:12px;border-radius:8px;overflow:auto;font-family:monospace;font-size:13px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px solid #eef2f7}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px}
+    .badge.add{background:#ecfdf5;color:var(--success)}
+    .badge.del{background:#fff5f5;color:var(--danger)}
+    .progress{height:8px;background:#eef2f7;border-radius:8px;overflow:hidden}
+    .bar{height:100%;background:linear-gradient(90deg,var(--primary),#7c3aed);width:0}
+
+    footer{margin-top:20px;padding:12px;text-align:center;color:var(--muted);font-size:13px}
+
+    /* Responsive */
+    @media (max-width:900px){.grid{grid-template-columns:1fr;}.left{order:2}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">DP</div>
+        <div>
+          <h1>Document Portal</h1>
+          <div class="subtitle">Analysis · Comparison · RAG Chat — Ready for FastAPI</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="muted">Session:</div>
+        <div class="card" style="display:inline-block;padding:8px 10px;border-radius:8px;margin-left:8px" id="sessionBox">—</div>
+        <button class="ghost small" id="newSessionBtn">New Session</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <nav class="tabs" role="tablist" aria-label="Document modes">
+        <div class="tab active" data-tab="analyze" role="tab" tabindex="0">Document Analysis</div>
+        <div class="tab" data-tab="compare" role="tab" tabindex="0">Document Comparison</div>
+        <div class="tab" data-tab="chat" role="tab" tabindex="0">Document Chat (RAG)</div>
+      </nav>
+
+      <div class="grid" id="mainGrid">
+        <aside class="left">
+          <div class="card" style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <strong>Settings</strong>
+              <small class="muted">UI-only controls</small>
+            </div>
+
+            <div class="control">
+              <label>Demo Mode</label>
+              <div class="row"><input type="checkbox" id="demoMode" checked><span class="muted" style="margin-left:8px">Use mock responses (no backend)</span></div>
+            </div>
+
+            <div class="control">
+              <label>RAG: Chunk size</label>
+              <input id="chunkSize" class="input" type="number" value="500" min="64" />
+            </div>
+            <div class="control">
+              <label>RAG: Overlap (tokens)</label>
+              <input id="overlap" class="input" type="number" value="64" min="0" />
+            </div>
+            <div class="control">
+              <label>Retrieval: top-K</label>
+              <input id="topK" class="input" type="number" value="5" min="1" max="20" />
+            </div>
+            <div class="control">
+              <label>FAISS Session Storage</label>
+              <div class="row"><input type="checkbox" id="persistFaiss"><span class="muted" style="margin-left:8px">Store vectors by session on server</span></div>
+            </div>
+            <div class="control">
+              <label>Backend Base URL</label>
+              <input id="baseUrl" class="input" type="text" value="/api" placeholder="e.g. https://example.com/api" />
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button id="saveSettings">Save</button>
+              <button class="ghost" id="resetSettings">Reset</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Quick Actions</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button id="downloadMockBtn" class="small">Download Mock JSON</button>
+              <button id="clearOutputs" class="ghost small">Clear Outputs</button>
+            </div>
+          </div>
+        </aside>
+
+        <main>
+          <!-- ANALYZE -->
+          <section id="analyze" class="panel">
+            <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+              <div style="flex:1">
+                <h3 class="section-title">Document Analysis</h3>
+                <p class="muted">Upload a single PDF to extract title, summary and structured metadata. The front-end will POST to <code>/analyze</code>.</p>
+
+                <div class="control">
+                  <label for="fileAnalyze">Upload PDF</label>
+                  <input id="fileAnalyze" type="file" accept="application/pdf" />
+                </div>
+
+                <div class="row" style="margin-top:8px">
+                  <button id="analyzeBtn">Analyze</button>
+                  <button class="ghost" id="analyzeMockBtn">Analyze (Mock)</button>
+                </div>
+
+                <div style="margin-top:10px">
+                  <label class="muted">Progress</label>
+                  <div class="progress" aria-hidden="true"><div id="analyzeBar" class="bar"></div></div>
+                </div>
+              </div>
+
+              <div style="width:420px">
+                <div class="card">
+                  <strong>Output (JSON)</strong>
+                  <pre id="analyzeOutput">{ /* results will appear here */ }</pre>
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <button id="copyAnalyze">Copy</button>
+                    <button class="ghost" id="downloadAnalyze">Download</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- COMPARE -->
+          <section id="compare" class="panel" style="display:none">
+            <h3 class="section-title">Document Comparison</h3>
+            <p class="muted">Upload two PDFs (reference and actual). Front-end will POST both to <code>/compare</code>. Results show page-by-page diffs.</p>
+
+            <div style="display:flex;gap:12px;align-items:flex-start;margin-top:8px">
+              <div style="flex:1">
+                <div class="control">
+                  <label>Reference PDF</label>
+                  <input id="refFile" type="file" accept="application/pdf" />
+                </div>
+                <div class="control">
+                  <label>Actual PDF</label>
+                  <input id="actFile" type="file" accept="application/pdf" />
+                </div>
+
+                <div class="row">
+                  <button id="compareBtn">Compare</button>
+                  <button class="ghost" id="compareMockBtn">Compare (Mock)</button>
+                </div>
+
+                <div style="margin-top:10px">
+                  <label class="muted">Progress</label>
+                  <div class="progress"><div id="compareBar" class="bar"></div></div>
+                </div>
+              </div>
+
+              <div style="width:420px">
+                <div class="card">
+                  <strong>Comparison Results</strong>
+                  <div id="compareResults" style="margin-top:8px">No comparison yet.</div>
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <button id="exportCompare">Export CSV</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- CHAT / RAG -->
+          <section id="chat" class="panel" style="display:none">
+            <h3 class="section-title">Document Chat (RAG)</h3>
+            <p class="muted">Upload multiple files to build a FAISS index; then ask questions. Endpoints: <code>/chat/index</code> and <code>/chat/query</code>.</p>
+
+            <div class="card" style="margin-bottom:12px">
+              <label>Upload files (PDF, DOCX, TXT)</label>
+              <input id="chatFiles" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" multiple />
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button id="indexBtn">Build Index</button>
+                <button class="ghost" id="indexMockBtn">Build (Mock)</button>
+                <div class="muted" style="margin-left:auto">Chunks: <span id="chunksInfo">—</span></div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:12px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input id="userQuery" class="input" placeholder="Ask a question about uploaded documents" />
+                <button id="queryBtn">Ask</button>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                <label class="muted">Top-K</label>
+                <input id="topKInline" class="input" style="width:80px" type="number" value="5" />
+                <label class="muted">Session ID</label>
+                <div class="card" id="sessionInline" style="padding:6px 8px;margin-left:6px">—</div>
+              </div>
+
+              <div style="margin-top:12px">
+                <strong>Conversation</strong>
+                <div id="chatHistory" style="max-height:260px;overflow:auto;padding:8px;border-radius:8px;margin-top:8px;background:#f8fafc"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <strong>Retrieval Details</strong>
+              <pre id="retrievalDebug">{ /* hits will appear here */ }</pre>
+            </div>
+          </section>
+        </main>
+      </div>
+
+    </div>
+
+    <footer>
+      Built for demonstration · Ready to integrate with FastAPI endpoints (/analyze, /compare, /chat/index, /chat/query) · Attribution: Document Portal UI
+    </footer>
+  </div>
+
+  <script>
+    // Basic state
+    const state = {
+      sessionId: null,
+      demoMode: true,
+      baseUrl: document.getElementById('baseUrl').value,
+    }
+
+    // Utilities
+    function uid(len=10){const s = 'abcdefghijklmnopqrstuvwxyz0123456789'; let o=''; for(let i=0;i<len;i++) o+=s[Math.floor(Math.random()*s.length)]; return o}
+    function setSession(id){state.sessionId = id; document.getElementById('sessionBox').textContent = id; document.getElementById('sessionInline').textContent = id}
+    function setProgress(barId, pct){const el = document.getElementById(barId); el.style.width = Math.max(0,Math.min(100,pct)) + '%'}
+    function jsonPretty(obj){return JSON.stringify(obj,null,2)}
+    function downloadFile(filename, text){const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(text); a.download=filename; a.click();}
+
+    // Initialize
+    setSession('sess-'+uid(8));
+    document.getElementById('newSessionBtn').onclick = ()=> setSession('sess-'+uid(8));
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+      document.getElementById(t.dataset.tab).style.display='block';
+    }))
+
+    // Settings
+    document.getElementById('demoMode').addEventListener('change', e=> state.demoMode = e.target.checked);
+    document.getElementById('saveSettings').addEventListener('click', ()=>{
+      state.demoMode = document.getElementById('demoMode').checked;
+      state.baseUrl = document.getElementById('baseUrl').value || '/api';
+      document.getElementById('chunksInfo').textContent = `${document.getElementById('chunkSize').value} (ovlp ${document.getElementById('overlap').value})`;
+      alert('Settings saved.')
+    })
+    document.getElementById('resetSettings').addEventListener('click', ()=>{
+      document.getElementById('chunkSize').value = 500; document.getElementById('overlap').value=64; document.getElementById('topK').value=5; document.getElementById('baseUrl').value='/api'; document.getElementById('demoMode').checked=true; state.demoMode=true; alert('Settings reset')
+    })
+
+    // ANALYZE functions
+    document.getElementById('analyzeBtn').addEventListener('click', async ()=>{
+      const f = document.getElementById('fileAnalyze').files[0];
+      if(!f){alert('Please choose a PDF to analyze.');return}
+      const fd = new FormData(); fd.append('file', f);
+      fd.append('session_id', state.sessionId);
+      setProgress('analyzeBar',5);
+
+      if(state.demoMode){ // mock
+        setProgress('analyzeBar',60);
+        await new Promise(r=>setTimeout(r,800));
+        const mock = {
+          filename: f.name,
+          title: f.name.replace(/\.pdf$/i,'').replace(/[_-]+/g,' '),
+          summary: 'This is a mock summary generated in demo mode. Replace demo mode to call your FastAPI /analyze endpoint.',
+          metadata:{pages:12, author:'Unknown', created:'2024-08-02'},
+          sections:[{heading:'Introduction',start_page:1},{heading:'Conclusion',start_page:12}]
+        }
+        document.getElementById('analyzeOutput').textContent = jsonPretty(mock);
+        setProgress('analyzeBar',100);
+        return;
+      }
+
+      try{
+        const resp = await fetch(state.baseUrl + '/analyze', {method:'POST', body:fd});
+        setProgress('analyzeBar',50);
+        if(!resp.ok) throw new Error('Server returned '+resp.status);
+        const data = await resp.json();
+        document.getElementById('analyzeOutput').textContent = jsonPretty(data);
+        setProgress('analyzeBar',100);
+      }catch(err){setProgress('analyzeBar',0);alert('Analyze failed: '+err.message)}
+    })
+    document.getElementById('analyzeMockBtn').addEventListener('click', ()=>{document.getElementById('demoMode').checked=true; state.demoMode=true; document.getElementById('analyzeBtn').click()})
+    document.getElementById('copyAnalyze').addEventListener('click', ()=>{navigator.clipboard.writeText(document.getElementById('analyzeOutput').textContent).then(()=>alert('Copied to clipboard'))})
+    document.getElementById('downloadAnalyze').addEventListener('click', ()=>downloadFile('analysis.json',document.getElementById('analyzeOutput').textContent))
+
+    // COMPARE functions
+    async function buildCompareTable(diff){
+      if(!diff || !diff.pages) return '<div class="muted">No diffs returned.</div>';
+      const rows = diff.pages.map(p=>`<tr><td>Page ${p.page}</td><td>${p.change_type=='modified'? '<span class="badge">Modified</span>':(p.change_type=='added'?'<span class="badge add">Added</span>':'<span class="badge del">Deleted</span>')}</td><td>${(p.summary||'—')}</td></tr>`).join('');
+      return `<table><thead><tr><th>Page</th><th>Type</th><th>Summary</th></tr></thead><tbody>${rows}</tbody></table>`
+    }
+
+    document.getElementById('compareBtn').addEventListener('click', async ()=>{
+      const ref = document.getElementById('refFile').files[0]; const act = document.getElementById('actFile').files[0];
+      if(!ref || !act){alert('Please upload both reference and actual PDFs.');return}
+      const fd = new FormData(); fd.append('reference', ref); fd.append('actual', act); fd.append('session_id', state.sessionId);
+      setProgress('compareBar',10);
+
+      if(state.demoMode){
+        setProgress('compareBar',60);
+        await new Promise(r=>setTimeout(r,900));
+        const mock = {pages: [ {page:1,change_type:'modified', summary:'Small text change'}, {page:4,change_type:'added', summary:'New figure inserted'} ] }
+        document.getElementById('compareResults').innerHTML = await buildCompareTable(mock);
+        setProgress('compareBar',100);
+        return;
+      }
+
+      try{
+        const res = await fetch(state.baseUrl + '/compare',{method:'POST',body:fd});
+        setProgress('compareBar',60);
+        if(!res.ok) throw new Error('Server '+res.status);
+        const data = await res.json();
+        document.getElementById('compareResults').innerHTML = await buildCompareTable(data);
+        setProgress('compareBar',100);
+      }catch(e){setProgress('compareBar',0);alert('Compare failed: '+e.message)}
+    })
+    document.getElementById('compareMockBtn').addEventListener('click', ()=>{document.getElementById('demoMode').checked=true; state.demoMode=true; document.getElementById('compareBtn').click()})
+
+    // Export compare CSV
+    document.getElementById('exportCompare').addEventListener('click', ()=>{
+      const tbl = document.querySelector('#compareResults table'); if(!tbl){alert('No comparison table to export.');return}
+      const rows = Array.from(tbl.querySelectorAll('tr')).map(r=>Array.from(r.querySelectorAll('th,td')).map(c=>'"'+c.textContent.replace(/"/g,'""')+'"').join(','))
+      const csv = rows.join('\n'); const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='comparison.csv'; a.click();
+    })
+
+    // CHAT / RAG
+    document.getElementById('indexBtn').addEventListener('click', async ()=>{
+      const files = document.getElementById('chatFiles').files; if(!files || files.length===0){alert('Choose at least one file');return}
+      const fd = new FormData(); for(const f of files) fd.append('files', f); fd.append('session_id', state.sessionId); fd.append('chunk_size', document.getElementById('chunkSize').value); fd.append('overlap', document.getElementById('overlap').value); fd.append('persist', document.getElementById('persistFaiss').checked);
+      document.getElementById('chunksInfo').textContent = 'Indexing...';
+
+      if(state.demoMode){
+        await new Promise(r=>setTimeout(r,800));
+        document.getElementById('chunksInfo').textContent = `${files.length * 8} chunks (mock)`;
+        appendChatSystem('Index built (mock). You can now ask questions.');
+        document.getElementById('retrievalDebug').textContent = jsonPretty({indexed_files: Array.from(files).map(f=>f.name), chunks: files.length*8});
+        return;
+      }
+
+      try{
+        const res = await fetch(state.baseUrl + '/chat/index',{method:'POST',body:fd});
+        if(!res.ok) throw new Error('Server '+res.status);
+        const data = await res.json();
+        document.getElementById('chunksInfo').textContent = data.chunks || '—';
+        document.getElementById('retrievalDebug').textContent = jsonPretty(data);
+        appendChatSystem('Index built.');
+      }catch(e){alert('Indexing failed: '+e.message)}
+    })
+    document.getElementById('indexMockBtn').addEventListener('click', ()=>{document.getElementById('demoMode').checked=true; state.demoMode=true; document.getElementById('indexBtn').click()})
+
+    function appendChatUser(text){ const el = document.createElement('div'); el.style.marginBottom='8px'; el.innerHTML = `<div style="font-weight:600">You</div><div style="background:white;padding:10px;border-radius:8px">${text}</div>`; document.getElementById('chatHistory').appendChild(el); document.getElementById('chatHistory').scrollTop = document.getElementById('chatHistory').scrollHeight }
+    function appendChatBot(text){ const el = document.createElement('div'); el.style.marginBottom='8px'; el.innerHTML = `<div style="font-weight:600;color:var(--muted)">Assistant</div><div style="background:#0b1220;color:#e6eef8;padding:10px;border-radius:8px">${text}</div>`; document.getElementById('chatHistory').appendChild(el); document.getElementById('chatHistory').scrollTop = document.getElementById('chatHistory').scrollHeight }
+    function appendChatSystem(text){ const el = document.createElement('div'); el.style.marginBottom='8px'; el.innerHTML = `<div style="font-size:13px;color:var(--muted)">${text}</div>`; document.getElementById('chatHistory').appendChild(el) }
+
+    document.getElementById('queryBtn').addEventListener('click', async ()=>{
+      const q = document.getElementById('userQuery').value.trim(); if(!q){alert('Ask a question.');return}
+      appendChatUser(q);
+      const body = {query:q,session_id:state.sessionId,top_k: parseInt(document.getElementById('topKInline').value||5,10)};
+
+      if(state.demoMode){
+        appendChatBot('Mock answer: This is a demo response. Replace demo mode to ask your server.\n\nRelevant snippets:');
+        document.getElementById('retrievalDebug').textContent = jsonPretty({hits:[{source:'doc1.pdf',score:0.92,excerpt:'This is an important paragraph...'}, {source:'doc2.pdf',score:0.74,excerpt:'Another supporting text...'}]});
+        return;
+      }
+
+      try{
+        const resp = await fetch(state.baseUrl + '/chat/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if(!resp.ok) throw new Error('Server '+resp.status);
+        const data = await resp.json();
+        appendChatBot(data.answer || JSON.stringify(data));
+        document.getElementById('retrievalDebug').textContent = jsonPretty(data.retrieval || data.hits || {});
+      }catch(e){appendChatBot('Query failed: '+e.message)}
+    })
+
+    // Misc
+    document.getElementById('downloadMockBtn').addEventListener('click', ()=>{
+      const mock = {info:'This is a mock dataset. Replace demo mode to call backend endpoints',session:state.sessionId}; downloadFile('mock.json',jsonPretty(mock))
+    })
+    document.getElementById('clearOutputs').addEventListener('click', ()=>{document.getElementById('analyzeOutput').textContent='{}'; document.getElementById('compareResults').innerHTML='No comparison yet.'; document.getElementById('chatHistory').innerHTML=''; document.getElementById('retrievalDebug').textContent='{}'; setProgress('analyzeBar',0); setProgress('compareBar',0)})
+
+    // Basic validation helpers - prevent uploading large files accidentally
+    document.querySelectorAll('input[type=file]').forEach(inp=>inp.addEventListener('change', ()=>{
+      const f = inp.files[0]; if(f && f.size>50*1024*1024){if(!confirm('File is >50MB. Continue?')) inp.value=''}
+    }))
+
+    // Keyboard accessibility: Enter to query when focus on input
+    document.getElementById('userQuery').addEventListener('keydown', e=>{if(e.key==='Enter') document.getElementById('queryBtn').click()})
+
+    // Expose a small helper to preview JSON from server responses when integrating backend
+    window.__docPortalHelper = {
+      setSession, state
+    }
+  </script>
+</body>
+</html>
