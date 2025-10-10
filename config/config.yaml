@@ -20,4 +20,3 @@ faiss_db:
 
 retriever:
   top_k: 3
-
