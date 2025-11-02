@@ -13,6 +13,7 @@ document_analyzer_prompt = ChatPromptTemplate.from_template(
     """
 )
 
+
 document_comparer_prompt = ChatPromptTemplate.from_template(
     """
     You are an extremly helpful AI assistant who excels in comparing documents.

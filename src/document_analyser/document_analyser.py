@@ -39,4 +39,3 @@ class DocumetAnalyzer:
         except Exception as e:
             self.logger.error("An error has occured while analyzing the document.")
             raise DocumentPortalException(e, sys)
-        

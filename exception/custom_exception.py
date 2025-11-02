@@ -56,7 +56,7 @@ if __name__ == '__main__':
         a = 1/0
         print("Error came or not?")
     except Exception as e:
-        raise DocumentPortalException(e, sys)
+        raise DocumentPortalException(f"An error occured while diving with zero. {str(e)}", e) from e
 
     # # Demo 2
     # try:
