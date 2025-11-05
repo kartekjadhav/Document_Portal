@@ -26,7 +26,7 @@ def save_uploaded_files(uploaded_files:Iterable, target_dir:Path) -> List[Path]:
                 raise DocumentPortalException(f'{ext} not in Supported extensions.')
                 continue
 
-            fname = f"{uuid4().hex[:8]}{ext}"
+            fname = f"{name}_{uuid4().hex[:8]}{ext}"
             out = target_dir / fname
             with open(out, "wb") as f:
                 if hasattr(file, 'read'):

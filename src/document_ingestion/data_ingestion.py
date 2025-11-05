@@ -7,13 +7,16 @@ import fitz
 from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Iterable
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException
 from utils.model_loader import ModelLoader
+from utils.file_io import generate_session_id, save_uploaded_files
+from utils.document_ops import load_documents
 
 
 class FaissManager:
@@ -267,3 +270,89 @@ class DocumentComparator:
         except Exception as e:
             self.logger.error("An error has occured while cleaning old sessions.")
             raise DocumentPortalException("Error occured while cleaning old sessions.", e) from e
+        
+    
+class ChatIngestor:
+    def __init__(
+            self,
+            temp_base:str='data',
+            faiss_base:str='faiss_index',
+            use_session_dirs:bool=True,     
+            session_id:Optional[str]=None,
+        ):
+        try:
+            self.logger = CustomLogger().get_logger(__name__)
+            self.logger.info("Starting to initialise ChatIngestor.")
+            
+            self.temp_base = Path(temp_base)
+            self.temp_base.mkdir(parents=True, exist_ok=True)
+            self.temp_dir = self._resolve_dir(base=self.temp_base)
+
+            self.faiss_base = Path(faiss_base)
+            self.faiss_base.mkdir(parents=True, exist_ok=True)
+            self.faiss_dir = self._resolve_dir(base=self.faiss_base)
+
+            self.use_session = use_session_dirs
+            
+            self.session_id = session_id or generate_session_id()
+
+            self.loder = ModelLoader()
+            
+            self.logger.info(
+                "Finished initialising ChatIngestor.",
+                temp_base=self.temp_base,
+                faiss_base=self.faiss_base,
+                sessionized=self.use_session,
+                session_id=self.session_id
+            )
+        except Exception as e:
+            self.logger.error("An error has occured while initialising ChatIngestor.")
+            raise DocumentPortalException('Initialisation of ChatIngestor Failed', e) from e
+    
+    def _resolve_dir(self, base:Path):
+        if self.use_session:
+            d = base / self.session_id # e.g - "faiss_index/abc123"
+            d.mkdir(parents=True, exist_ok=True) # Created dir if not exists
+            return d
+        return base # Fallback to "faiss_index"
+    
+    def _split(self, docs: List[Document], chunk_size:int=1000, chunk_overlap:int=200) -> List[Document]:
+        self.logger.info("Starting to create chunks.")
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        chunks = text_splitter.split_documents(documents=docs)
+        self.logger.info("Finished creating chunks.")
+        return chunks
+    
+    def build_retriever(
+        self,
+        uploaded_files:Iterable,
+        chunk_size:int=1000,
+        chunk_overlap:int=200,
+        k:int=5
+    ):
+        try:
+            self.logger.info("Starting to build retriever.")
+            
+            saved_paths = save_uploaded_files(uploaded_files=uploaded_files, target_dir=self.temp_dir)
+            docs = load_documents(paths=saved_paths)
+            chunks = self._split(docs=docs, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+            
+            # Create FaissManger
+            fm = FaissManager(self.faiss_dir, model_loader=self.loder)
+
+            texts = [chunk.page_content for chunk in chunks]
+            metas = [chunk.metadata for chunk in chunks]
+
+            
+            vs = fm.load_or_create(texts=texts, metadatas=metas)
+
+            added = fm.add_documents(docs=chunks)
+            self.logger.info('FAISS index updated', added=added, index=str(self.faiss_dir))
+
+            return vs.as_retriever(
+                search_type="similarity",
+                search_kwargs={'k': k}
+            )
+        except Exception as e:
+            self.logger.error("An error has occured while building retriever.")
+            raise DocumentPortalException("Error occured while building retriever.", e) from e
